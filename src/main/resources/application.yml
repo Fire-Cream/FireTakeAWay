@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: fire_takeaway
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/fire_takeaway?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password:
+  servlet:
+    multipart:
+      max-file-size: 1024MB
+      max-request-size: 1024MB
+
+mybatis-plus:
+  configuration:
+    #在映射实体或者属性时，将数据库中表名和字段名中的下划线去掉，按照驼峰命名法映射
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+
+fire_takeaway:
+  path: D:\img\
+  email:
+    # 发件人主机
+    emailHost: "smtp.qq.com"
+    transportType: "smtp"
+    # 邮箱账号
+    userName: 768960051
+    # 邮箱授权码
+    authCode: ovcgyljiyieebbig
+    # 发件人邮箱地址
+    fromEmail: 768960051@qq.com
+    # 发件人用户名
+    addressName: 火火外卖
+    # 邮件标题
+    title: 火火外卖验证码登录
