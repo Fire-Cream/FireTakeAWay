@@ -12,11 +12,14 @@ import com.cream.fire_takeaway.service.DishFlavorService;
 import com.cream.fire_takeaway.service.DishService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -33,10 +36,13 @@ public class DishController {
     private DishService dishService;
 
     @Autowired
-    DishFlavorService dishFlavorService;
+    private DishFlavorService dishFlavorService;
 
     @Autowired
-    CategoryService categoryService;
+    private CategoryService categoryService;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @GetMapping("/page")
     public R page(@RequestParam("page") Long page,
@@ -65,6 +71,9 @@ public class DishController {
 
         dishFlavorService.saveBatch(dishDto.getId(), dishDto.getFlavors());
 
+        Set keys = redisTemplate.keys("dish_*");
+        redisTemplate.delete(keys);
+
         return R.success("添加成功");
     }
 
@@ -75,6 +84,11 @@ public class DishController {
         dishFlavorService.deleteByDishId(dishDto.getId());
 
         dishFlavorService.saveBatch(dishDto.getId(), dishDto.getFlavors());
+
+//        Set keys = redisTemplate.keys("dish_*");
+//        redisTemplate.delete(keys);
+        String key = "dish_" + dishDto.getCategoryId() + "_1";
+        redisTemplate.delete(key);
 
         return R.success("修改成功");
     }
@@ -100,6 +114,9 @@ public class DishController {
 
         dishService.changeStatus(status, ids);
 
+        Set keys = redisTemplate.keys("dish_*");
+        redisTemplate.delete(keys);
+
         return R.success("修改成功");
     }
 
@@ -108,14 +125,30 @@ public class DishController {
 
         dishService.deleteDish(ids);
 
+        Set keys = redisTemplate.keys("dish_*");
+        redisTemplate.delete(keys);
+
         return R.success("删除成功");
     }
 
     @GetMapping("/list")
     public R getDishByCategoryId(DishEntity dish) {
+        List<DishDto> dtoList = null;
+
+        String key = "dish_" + dish.getCategoryId() + "_" + dish.getStatus();
+
+        dtoList = (List<DishDto>) redisTemplate.opsForValue().get(key);
+
+        if (dtoList != null) {
+            return R.success(dtoList);
+        }
+
         List<DishEntity> list = dishService.getDishByDish(dish);
 
-        List<DishDto> dtoList = dishFlavorService.getDishDtoByDish(list);
+        dtoList = dishFlavorService.getDishDtoByDish(list);
+
+        redisTemplate.opsForValue().set(key, dtoList, 60, TimeUnit.MINUTES);
+
         return R.success(dtoList);
     }
 

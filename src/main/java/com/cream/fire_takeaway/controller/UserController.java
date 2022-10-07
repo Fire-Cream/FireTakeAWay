@@ -7,6 +7,7 @@ import com.cream.fire_takeaway.utils.SentMail;
 import com.cream.fire_takeaway.utils.ValidateCodeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author: Cream
@@ -33,6 +35,9 @@ public class UserController {
     @Autowired
     private SentMail sentMail;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     @PostMapping("/sendMsg")
     public R sendMsg(@RequestBody UserEntity userEntity, HttpServletRequest request) {
         //获取邮箱
@@ -41,7 +46,8 @@ public class UserController {
             //生成验证码
             String code = ValidateCodeUtils.generateValidateCode(4).toString();
             //保存生成的验证码
-            request.getSession().setAttribute("code", code);
+//            request.getSession().setAttribute("code", code);
+            redisTemplate.opsForValue().set("code", code, 5, TimeUnit.MINUTES);
             try {
                 sentMail.sendMail(email, code);
             } catch (MessagingException e) {
@@ -60,7 +66,8 @@ public class UserController {
         String email = user.get("email").toString();
         String code = user.get("code").toString();
         //获取session的验证码
-        String co = request.getSession().getAttribute("code").toString();
+//        String co = request.getSession().getAttribute("code").toString();
+        String co = (String) redisTemplate.opsForValue().get("code");
         //判断验证码
         //登录成功
         if (co != null && co.equals(code)) {
@@ -75,8 +82,8 @@ public class UserController {
                 userService.save(userEntity);
                 userEntity = userService.getUserByEmail(email);
             }
-            System.out.println("---------------------------" + userEntity.getId());
             request.getSession().setAttribute("user", userEntity.getId());
+            redisTemplate.delete("code");
             return R.success(userEntity);
         }
         return R.error("登录失败");
