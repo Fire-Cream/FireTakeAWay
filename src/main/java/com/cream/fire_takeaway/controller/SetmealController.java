@@ -12,6 +12,8 @@ import com.cream.fire_takeaway.service.SetmealDishService;
 import com.cream.fire_takeaway.service.SetmealService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -59,6 +61,7 @@ public class SetmealController {
     }
 
     @PostMapping
+    @CacheEvict(value = "setmealCache", allEntries = true)
     public R addSetmeal(@RequestBody SetmealDto setmealDto) {
         setmealService.save(setmealDto);
         setmealDishService.saveBatch(setmealDto.getId(), setmealDto.getSetmealDishes());
@@ -76,6 +79,7 @@ public class SetmealController {
     }
 
     @PutMapping
+    @CacheEvict(value = "setmealCache", allEntries = true)
     public R changeSetmeal(@RequestBody SetmealDto setmealDto) {
         setmealService.saveOrUpdate(setmealDto);
 
@@ -87,6 +91,7 @@ public class SetmealController {
     }
 
     @DeleteMapping
+    @CacheEvict(value = "setmealCache", allEntries = true)
     public R deleteSetmeal(@RequestParam("ids") Long[] ids) {
         setmealService.deleteByIds(ids);
         setmealDishService.deleteBySetmealIds(ids);
@@ -95,6 +100,7 @@ public class SetmealController {
 
 
     @PostMapping("/status/{status}")
+    @CacheEvict(value = "setmealCache", allEntries = true)
     public R changeStatus(@PathVariable("status") Integer status,
                           @RequestParam("ids") Long[] ids) {
         setmealService.changeStatusByIds(status, ids);
@@ -102,6 +108,7 @@ public class SetmealController {
     }
 
     @GetMapping("/list")
+    @Cacheable(value = "setmealCache", key = "#setmeal.categoryId + '_' + #setmeal.status")
     public R getSetmealByCategortId(SetmealEntity setmeal) {
         List<SetmealEntity> list = setmealService.getSetmealBySetmeal(setmeal);
         return R.success(list);
